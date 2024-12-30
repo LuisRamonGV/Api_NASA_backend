@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 
 @RestController
 public class NasaApodController {
@@ -45,11 +46,28 @@ public class NasaApodController {
         if (endDate == null || endDate.isEmpty()) {
             endDate = LocalDate.now().toString(); // Fecha actual
         }
+
         // Valida el formato de las fechas
         validateDateFormat(startDate);
         validateDateFormat(endDate);
+
+        // Convierte las fechas a LocalDate
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+
+        // Valida el rango de fechas utilizando ChronoUnit.DAYS
+        long daysBetween = ChronoUnit.DAYS.between(start, end);
+        if (daysBetween > 6) {
+            throw new IllegalArgumentException("El rango no puede exceder los 6 días.");
+        }
+
+        if (daysBetween < 0) {
+            throw new IllegalArgumentException("La fecha final debe ser después de la fecha inicial.");
+        }
+
         return nasaApodService.getApodsByRange(startDate, endDate);
     }
+
 
     /**
      * Valida que la fecha esté en el formato YYYY-MM-DD.
