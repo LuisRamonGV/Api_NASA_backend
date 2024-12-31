@@ -30,19 +30,16 @@
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
-		<!-- Dependencia para Spring MVC (Web) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-		<!-- Dependencia para WebFlux (WebClient) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
-		<!-- Herramientas de desarrollo -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -50,7 +47,6 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- Dependencias para pruebas -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

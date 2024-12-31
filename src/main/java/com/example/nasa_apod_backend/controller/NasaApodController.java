@@ -18,44 +18,39 @@ public class NasaApodController {
     private NasaApodService nasaApodService;
 
     /**
-     * Obtiene la imagen del día especificada por la fecha o la imagen más reciente si no se proporciona fecha.
-     * @param date Fecha en formato YYYY-MM-DD (opcional)
-     * @return JSON de la respuesta de la API de NASA
+     * Gets the image of the day specified by date or the most recent image if no date is provided.
+     * @param date Date in YYYY-MM-DD format (optional)
+     * @return JSON from NASA API response
      */
     @GetMapping("/apod")
     public String getApod(@RequestParam(value = "date", required = false) String date) {
-        // Usa la fecha actual si no se proporciona o valida el formato
         if (date == null || date.isEmpty()) {
-            date = LocalDate.now().toString(); // Fecha actual
+            date = LocalDate.now().toString();
         } else {
-            validateDateFormat(date); // Valida el formato de la fecha
+            validateDateFormat(date);
         }
         return nasaApodService.getApodByDate(date);
     }
 
     /**
-     * Obtiene las imágenes dentro de un rango de fechas.
-     * @param startDate Fecha de inicio en formato YYYY-MM-DD (requerido)
-     * @param endDate Fecha de fin en formato YYYY-MM-DD (opcional, por defecto la fecha actual)
-     * @return JSON de la respuesta de la API de NASA
+     * Gets the images within a date range.
+	 * @param startDate Start date in YYYY-MM-DD format (required)
+	 * @param endDate End date in YYYY-MM-DD format (optional, defaults to current date)
+	 * @return JSON from NASA API response
      */
     @GetMapping("/apods")
     public String getApodsByRange(@RequestParam("start_date") String startDate,
                                   @RequestParam(value = "end_date", required = false) String endDate) {
-        // Usa la fecha actual si no se proporciona endDate
         if (endDate == null || endDate.isEmpty()) {
-            endDate = LocalDate.now().toString(); // Fecha actual
+            endDate = LocalDate.now().toString();
         }
 
-        // Valida el formato de las fechas
         validateDateFormat(startDate);
         validateDateFormat(endDate);
 
-        // Convierte las fechas a LocalDate
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
 
-        // Valida el rango de fechas utilizando ChronoUnit.DAYS
         long daysBetween = ChronoUnit.DAYS.between(start, end);
         if (daysBetween > 6) {
             throw new IllegalArgumentException("El rango no puede exceder los 6 días.");
@@ -70,8 +65,8 @@ public class NasaApodController {
 
 
     /**
-     * Valida que la fecha esté en el formato YYYY-MM-DD.
-     * @param date Fecha en formato YYYY-MM-DD.
+     * Validates that the date is in YYYY-MM-DD format.
+     * @param date Date in YYYY-MM-DD format
      */
     private void validateDateFormat(String date) {
         try {

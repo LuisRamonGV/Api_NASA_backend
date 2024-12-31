@@ -1,12 +1,14 @@
 package com.example.nasa_apod_backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class NasaApodService {
@@ -16,18 +18,20 @@ public class NasaApodService {
     @Value("${nasa.apod.api-key}")
     private String apiKey;
 
+    private final Map<String, CachedResponse> cache = new HashMap<>();
+
     public NasaApodService(@Value("${nasa.apod.base-url}") String baseUrl, WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
     }
 
-    /**
-     * Obtiene la imagen del día actual con almacenamiento en caché para evitar múltiples solicitudes a la API.
-     * Incluye lógica de reintento en caso de errores temporales.
-     * @return Respuesta de la API como String.
-     */
-    @Cacheable("todayApod")
     public String getTodayApod() {
-        return webClient.get()
+        String todayKey = "today";
+
+        if (cache.containsKey(todayKey) && !cache.get(todayKey).isExpired()) {
+            return cache.get(todayKey).getData();
+        }
+
+        String response = webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .queryParam("api_key", apiKey)
                         .build())
@@ -35,16 +39,19 @@ public class NasaApodService {
                 .bodyToMono(String.class)
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(5)))
                 .block();
+
+        cache.put(todayKey, new CachedResponse(response));
+        return response;
     }
 
-    /**
-     * Obtiene la imagen de un día específico.
-     * Incluye lógica de reintento en caso de errores temporales.
-     * @param date Fecha en formato YYYY-MM-DD.
-     * @return Respuesta de la API como String.
-     */
     public String getApodByDate(String date) {
-        return webClient.get()
+        String cacheKey = "date-" + date;
+
+        if (cache.containsKey(cacheKey) && !cache.get(cacheKey).isExpired()) {
+            return cache.get(cacheKey).getData();
+        }
+
+        String response = webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .queryParam("api_key", apiKey)
                         .queryParam("date", date)
@@ -53,17 +60,19 @@ public class NasaApodService {
                 .bodyToMono(String.class)
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(5)))
                 .block();
+
+        cache.put(cacheKey, new CachedResponse(response));
+        return response;
     }
 
-    /**
-     * Obtiene imágenes en un rango de fechas.
-     * Incluye lógica de reintento en caso de errores temporales.
-     * @param startDate Fecha inicial en formato YYYY-MM-DD.
-     * @param endDate Fecha final en formato YYYY-MM-DD.
-     * @return Respuesta de la API como String.
-     */
     public String getApodsByRange(String startDate, String endDate) {
-        return webClient.get()
+        String cacheKey = "range-" + startDate + "-" + endDate;
+
+        if (cache.containsKey(cacheKey) && !cache.get(cacheKey).isExpired()) {
+            return cache.get(cacheKey).getData();
+        }
+
+        String response = webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .queryParam("api_key", apiKey)
                         .queryParam("start_date", startDate)
@@ -73,6 +82,31 @@ public class NasaApodService {
                 .bodyToMono(String.class)
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(5)))
                 .block();
+
+        cache.put(cacheKey, new CachedResponse(response));
+        return response;
     }
 
+    /**
+     * Inner class to manage cached data and its expiration.
+     */
+    private static class CachedResponse {
+        private final String data;
+        private final LocalDateTime expirationTime;
+
+        private static final Duration CACHE_DURATION = Duration.ofMinutes(10);
+
+        public CachedResponse(String data) {
+            this.data = data;
+            this.expirationTime = LocalDateTime.now().plus(CACHE_DURATION);
+        }
+
+        public String getData() {
+            return data;
+        }
+
+        public boolean isExpired() {
+            return LocalDateTime.now().isAfter(expirationTime);
+        }
+    }
 }
